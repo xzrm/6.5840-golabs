@@ -66,42 +66,92 @@ func (c *Coordinator) server() {
 	go http.Serve(l, nil)
 }
 
-func (c *Coordinator) AssignTask() *Task {
+func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
 	if !c.mapDone {
 		for i := range c.mapTasks {
-			//todo: check if i can assign for i, t and then use pointer to t
 			t := &c.mapTasks[i]
 			if t.Status == Idle || (t.Status == InProgress && time.Since(t.StartTime) > 10*time.Second) {
 				t.StartTime = time.Now()
 				t.Status = InProgress
-				return t
+
+				reply.TaskType = "map"
+				reply.TaskID = t.ID
+				reply.Filename = t.Filename
+				reply.NReduce = c.nReduce
+				return nil
 			}
 		}
+		reply.TaskType = "wait"
+		return nil
 	}
+
 	if !c.reduceDone {
 		for i := range c.reduceTasks {
 			t := &c.reduceTasks[i]
 			if t.Status == Idle || (t.Status == InProgress && time.Since(t.StartTime) > 10*time.Second) {
 				t.StartTime = time.Now()
 				t.Status = InProgress
-				return t
+
+				reply.TaskType = "reduce"
+				reply.TaskID = t.ID
+				reply.NMap = len(c.mapTasks)
+				return nil
 			}
 		}
+		reply.TaskType = "wait"
+		return nil
 	}
+
+	reply.TaskType = "exit"
 	return nil
+}
+
+// worker reports finishing a task
+func (c *Coordinator) ReportTaskDone(args *ReportTaskDoneArgs, reply *ReportTaskDoneReply) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	switch args.TaskType {
+	case "map":
+		c.mapTasks[args.TaskID].Status = Completed
+		c.mapDone = c.allTasksDone(c.mapTasks)
+	case "reduce":
+		c.reduceTasks[args.TaskID].Status = Completed
+		c.reduceDone = c.allTasksDone(c.reduceTasks)
+	}
+
+	reply.Ack = true
+	return nil
+}
+
+func (c *Coordinator) allTasksDone(tasks []Task) bool {
+	for _, t := range tasks {
+		if t.Status != Completed {
+			return false
+		}
+	}
+	return true
 }
 
 // main/mrcoordinator.go calls Done() periodically to find out
 // if the entire job has finished.
 func (c *Coordinator) Done() bool {
-	ret := false
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	// Your code here.
-
-	return ret
+	return c.mapDone && c.reduceDone
 }
+
+// func (c *Coordinator) Done() bool {
+// 	ret := false
+
+// 	// Your code here.
+
+// 	return ret
+// }
 
 // create a Coordinator.
 // main/mrcoordinator.go calls this function.
