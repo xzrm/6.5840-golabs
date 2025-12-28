@@ -66,6 +66,7 @@ func (c *Coordinator) server() {
 	go http.Serve(l, nil)
 }
 
+// todo: in case of multiple workers there might be two processes that work on the same mapID; probably good to add a mechanism to kill the previous process before the same ID is given away
 func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()

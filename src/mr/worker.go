@@ -28,8 +28,7 @@ func ihash(key string) int {
 }
 
 // main/mrworker.go calls this function.
-func Worker(mapf func(string, string) []KeyValue,
-	reducef func(string, []string) string) {
+func Worker(mapf func(string, string) []KeyValue, reducef func(string, []string) string) {
 
 	for {
 		args := RequestTaskArgs{}
@@ -61,8 +60,7 @@ func Worker(mapf func(string, string) []KeyValue,
 	}
 }
 
-func doMapTask(mapID int, filename string, nReduce int,
-	mapf func(string, string) []KeyValue) {
+func doMapTask(mapID int, filename string, nReduce int, mapf func(string, string) []KeyValue) {
 
 	file, err := os.Open(filename)
 	if err != nil {
@@ -101,8 +99,7 @@ func doMapTask(mapID int, filename string, nReduce int,
 	}
 }
 
-func doReduceTask(reduceID int, nMap int,
-	reducef func(string, []string) string) {
+func doReduceTask(reduceID int, nMap int, reducef func(string, []string) string) {
 
 	intermediate := []KeyValue{}
 
