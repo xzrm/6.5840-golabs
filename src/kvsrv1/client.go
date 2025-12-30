@@ -1,6 +1,8 @@
 package kvsrv
 
 import (
+	"time"
+
 	"6.5840/kvsrv1/rpc"
 	kvtest "6.5840/kvtest1"
 	tester "6.5840/tester1"
@@ -39,6 +41,7 @@ func (ck *Clerk) Get(key string) (string, rpc.Tversion, rpc.Err) {
 			}
 			return reply.Value, reply.Version, reply.Err
 		}
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -85,5 +88,6 @@ func (ck *Clerk) Put(key, value string, version rpc.Tversion) rpc.Err {
 			return rpc.OK
 		}
 		first = false
+		time.Sleep(100 * time.Millisecond)
 	}
 }

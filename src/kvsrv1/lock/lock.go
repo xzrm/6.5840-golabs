@@ -1,7 +1,11 @@
 package lock
 
 import (
-	"6.5840/kvtest1"
+	"fmt"
+	"time"
+
+	"6.5840/kvsrv1/rpc"
+	kvtest "6.5840/kvtest1"
 )
 
 type Lock struct {
@@ -9,8 +13,9 @@ type Lock struct {
 	// the specific Clerk type of ck but promises that ck supports
 	// Put and Get.  The tester passes the clerk in when calling
 	// MakeLock().
-	ck kvtest.IKVClerk
-	// You may add code here
+	ck       kvtest.IKVClerk
+	clientId string
+	lockKey  string
 }
 
 // The tester calls MakeLock() and passes in a k/v clerk; your code can
@@ -19,15 +24,59 @@ type Lock struct {
 // Use l as the key to store the "lock state" (you would have to decide
 // precisely what the lock state is).
 func MakeLock(ck kvtest.IKVClerk, l string) *Lock {
-	lk := &Lock{ck: ck}
-	// You may add code here
+	lk := &Lock{ck: ck, clientId: kvtest.RandValue(8), lockKey: l}
 	return lk
 }
 
 func (lk *Lock) Acquire() {
-	// Your code here
+	for {
+		// get the key to check its value
+		value, ver, err := lk.ck.Get(lk.lockKey)
+		// we already own it
+		if value == lk.clientId {
+			return
+		}
+		//unlocked (empty string) or not set yet
+		if value == "" || err == rpc.ErrNoKey {
+			err = lk.ck.Put(lk.lockKey, lk.clientId, ver)
+
+			if err == rpc.OK {
+				return
+			}
+
+			if err == rpc.ErrMaybe {
+				// recheck
+				value, _, _ = lk.ck.Get(lk.lockKey)
+				if value == lk.clientId {
+					return
+				}
+			}
+		}
+
+		time.Sleep(100 * time.Millisecond)
+	}
 }
 
 func (lk *Lock) Release() {
-	// Your code here
+	value, version, err := lk.ck.Get(lk.lockKey)
+	if err == rpc.ErrNoKey {
+		panic("Lock doesn't exist")
+	}
+	if value != lk.clientId {
+		panic("Cannot release the lock owned by different client")
+	}
+
+	err = lk.ck.Put(lk.lockKey, "", version)
+
+	switch err {
+	case rpc.OK:
+		return
+	case rpc.ErrVersion:
+		panic("Cannot release lock due to version mismatch")
+	case rpc.ErrMaybe:
+		// Treat as released; can't confirm but that's OK — lock is now raceable
+		return
+	default:
+		panic(fmt.Sprintf("Unexpected error on release: %v", err))
+	}
 }

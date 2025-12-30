@@ -2,10 +2,9 @@ package kvsrv
 
 import (
 	"log"
-	"net/rpc"
 	"sync"
 
-	kvrpc "6.5840/kvsrv1/rpc"
+	"6.5840/kvsrv1/rpc"
 	"6.5840/labrpc"
 	tester "6.5840/tester1"
 )
@@ -30,52 +29,52 @@ type KVServer struct {
 }
 
 func MakeKVServer() *KVServer {
-	kv := &KVServer{}
-	kv.data = make(map[string]ValueEntry)
-	rpc.Register(kv)
+	kv := &KVServer{
+		data: make(map[string]ValueEntry),
+	}
 	return kv
 }
 
 // Get returns the value and version for args.Key, if args.Key
 // exists. Otherwise, Get returns ErrNoKey.
-func (kv *KVServer) Get(args *kvrpc.GetArgs, reply *kvrpc.GetReply) {
+func (kv *KVServer) Get(args *rpc.GetArgs, reply *rpc.GetReply) {
 	kv.mu.Lock()
 	defer kv.mu.Unlock()
 	entry, ok := kv.data[args.Key]
 	if !ok {
-		reply.Err = kvrpc.ErrNoKey
+		reply.Err = rpc.ErrNoKey
 		return
 	}
 	reply.Value = entry.Value
-	reply.Version = kvrpc.Tversion(entry.Version)
-	reply.Err = kvrpc.OK
+	reply.Version = rpc.Tversion(entry.Version)
+	reply.Err = rpc.OK
 }
 
 // Update the value for a key if args.Version matches the version of
 // the key on the server. If versions don't match, return ErrVersion.
 // If the key doesn't exist, Put installs the value if the
 // args.Version is 0, and returns ErrNoKey otherwise.
-func (kv *KVServer) Put(args *kvrpc.PutArgs, reply *kvrpc.PutReply) {
+func (kv *KVServer) Put(args *rpc.PutArgs, reply *rpc.PutReply) {
 	// Your code here.
 	kv.mu.Lock()
 	defer kv.mu.Unlock()
 	entry, ok := kv.data[args.Key]
 	if !ok {
 		if args.Version != 0 {
-			reply.Err = kvrpc.ErrNoKey
+			reply.Err = rpc.ErrNoKey
 			return
 		}
 		kv.data[args.Key] = ValueEntry{Value: args.Value, Version: 1}
-		reply.Err = kvrpc.OK
+		reply.Err = rpc.OK
 		return
 	}
 
 	if entry.Version != int(args.Version) {
-		reply.Err = kvrpc.ErrVersion
+		reply.Err = rpc.ErrVersion
 		return
 	}
 	kv.data[args.Key] = ValueEntry{Value: args.Value, Version: entry.Version + 1}
-	reply.Err = kvrpc.OK
+	reply.Err = rpc.OK
 
 }
 
