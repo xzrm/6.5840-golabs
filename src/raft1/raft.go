@@ -18,6 +18,30 @@ import (
 	"6.5840/raftapi"
 )
 
+type RaftState int
+
+const (
+	Follower RaftState = iota
+	Candidate
+	Leader
+	Dead
+)
+
+func (s RaftState) String() string {
+	switch s {
+	case Follower:
+		return "Follower"
+	case Candidate:
+		return "Candidate"
+	case Leader:
+		return "Leader"
+	case Dead:
+		return "Dead"
+	default:
+		panic("unreachable")
+	}
+}
+
 // A Go object implementing a single Raft peer.
 type Raft struct {
 	mu        sync.Mutex          // Lock to protect shared access to this peer's state
@@ -29,18 +53,12 @@ type Raft struct {
 	// Your data here (3A, 3B, 3C).
 	// Look at the paper's Figure 2 for a description of what
 	// state a Raft server must maintain.
-	currentTerm int
-	votedFor    int
-	peerIds     []int
+	currentTerm        int
+	votedFor           int
+	peerIds            []int
+	state              RaftState
+	electionResetEvent time.Time
 }
-type CMState int
-
-const (
-	Follower CMState = iota
-	Candidate
-	Leader
-	Dead
-)
 
 // return currentTerm and whether this server
 // believes it is the leader.
@@ -49,6 +67,9 @@ func (rf *Raft) GetState() (int, bool) {
 	var term int
 	var isleader bool
 	// Your code here (3A).
+	if rf.state.String() == "Leader" {
+		isleader = true
+	}
 	return term, isleader
 }
 
@@ -110,17 +131,22 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 // field names must start with capital letters!
 type RequestVoteArgs struct {
 	// Your data here (3A, 3B).
+	Term        int
+	CandidateId int
 }
 
 // example RequestVote RPC reply structure.
 // field names must start with capital letters!
 type RequestVoteReply struct {
 	// Your data here (3A).
+	Term        int
+	VoteGranted bool
 }
 
 // example RequestVote RPC handler.
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	// Your code here (3A, 3B).
+
 }
 
 // example code to send a RequestVote RPC to a server.
