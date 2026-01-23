@@ -150,7 +150,7 @@ type AppendEntriesReply struct {
 }
 
 // example RequestVote RPC handler.
-func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) error {
+func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	// Your code here (3A, 3B).
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
@@ -168,10 +168,9 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) erro
 		reply.VoteGranted = false
 		reply.Term = rf.currentTerm
 	}
-	return nil
 }
 
-func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) error {
+func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
@@ -187,8 +186,6 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 		reply.Success = true
 	}
 	reply.Term = rf.currentTerm
-	return nil
-
 }
 
 // example code to send a RequestVote RPC to a server.
